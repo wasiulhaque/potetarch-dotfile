@@ -78,6 +78,8 @@ and matching active, hover, urgent, and tooltip colors.
 
 - **Left** has an Arch icon that opens Vicinae, three persistent workspace
   indicators, the focused window title, and CPU, RAM, and temperature readings.
+  Workspaces 1–3 are always shown. Higher-numbered workspaces appear when
+  Hyprland creates them on that display and disappear when it removes them.
 - **Center** has the clock and date, an alternate long date on click, and a
   calendar tooltip.
 - **Right** has Tailscale status, network and sound controls, brightness,

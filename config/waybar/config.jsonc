@@ -22,7 +22,6 @@
     "sort-by": "number",
     "all-outputs": false,
     "persistent-workspaces": {"*": 3},
-    "ignore-workspaces": ["^(?![1-3]$).+"],
     "disable-scroll": false
   },
   "hyprland/window": {
