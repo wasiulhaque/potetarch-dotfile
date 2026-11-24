@@ -1,4 +1,4 @@
-# potetarch dotfile
+# potetarch-dotfile
 
 My Arch Linux and Hyprland desktop with a floating lavender Waybar, custom
 GTK menus for Wi-Fi, VPNs, and sound, and a matching notification center
