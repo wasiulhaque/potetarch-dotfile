@@ -1,0 +1,80 @@
+{
+  // One floating panel per display; no display names are hard-coded.
+  "layer": "top",
+  "position": "top",
+  "height": 36,
+  "margin-top": 5,
+  "margin-left": 7,
+  "margin-right": 7,
+  "spacing": 5,
+
+  "modules-left": ["custom/launcher", "hyprland/workspaces", "hyprland/window", "cpu", "memory", "temperature"],
+  "modules-center": ["clock"],
+  "modules-right": ["custom/tailscale", "network", "pulseaudio", "backlight", "battery", "power-profiles-daemon", "tray", "custom/notifications", "custom/weather"],
+
+  "custom/launcher": {
+    "format": "",
+    "tooltip": "Vicinae launcher",
+    "on-click": "vicinae toggle"
+  },
+  "hyprland/workspaces": {
+    "format": "{name}",
+    "sort-by": "number",
+    "all-outputs": false,
+    "persistent-workspaces": {"*": 3},
+    "ignore-workspaces": ["^(?![1-3]$).+"],
+    "disable-scroll": false
+  },
+  "hyprland/window": {
+    "format": "{title}",
+    "min-length": 34,
+    "align": 0.0,
+    "max-length": 34,
+    "separate-outputs": true
+  },
+  "cpu": {"format": "<span alpha='75%'>CPU</span> {usage}%", "interval": 5},
+  "memory": {"format": "<span alpha='75%'>RAM</span> {percentage}%", "interval": 5},
+  "temperature": {
+    "hwmon-name": "coretemp",
+    "input-filename": "temp1_input",
+    "format": "<span alpha='75%'>Temp</span> {temperatureC}°C",
+    "tooltip-format": "CPU package · {temperatureC}°C",
+    "critical-threshold": 82
+  },
+  "clock": {
+    "format": "{:%H:%M | %d %b}",
+    "format-alt": "{:%A, %B %d %Y}",
+    "tooltip-format": "<tt>{calendar}</tt>",
+    "calendar": {
+      "mode": "month",
+      "format": {"today": "<b><span color='#c4b8ff'>{}</span></b>"}
+    }
+  },
+  "custom/weather": {
+    "exec": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/weather.py\" --follow",
+    "restart-interval": 15,
+    "format": "{}",
+    "tooltip-format": "Weather · Open-Meteo"
+  },
+  "custom/tailscale": {
+    "exec": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/tailscale-status.py\"",
+    "return-type": "json",
+    "interval": 10
+  },
+  "network": {"format-wifi": "󰖩", "format-ethernet": "󰈀  Wired", "format-disconnected": "󰖪  Offline", "tooltip-format": "{ifname}", "on-click": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls.py\" wifi \"${WAYBAR_OUTPUT_NAME:-}\" \"$(hyprctl -j cursorpos)\""},
+  "pulseaudio": {"format": "  {volume}%", "format-muted": "󰖁  Mute", "on-click": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls.py\" audio \"${WAYBAR_OUTPUT_NAME:-}\" \"$(hyprctl -j cursorpos)\"", "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle", "scroll-step": 5},
+  "backlight": {"format": "󰃠  {percent}%"},
+  "battery": {"format": "  {capacity}%", "format-charging": "  {capacity}%", "states": {"warning": 25, "critical": 10}},
+  "power-profiles-daemon": {
+    "format": "{icon}",
+    "format-icons": {
+      "power-saver": "󰌪",
+      "balanced": "󰾅",
+      "performance": "󰉁"
+    },
+    "tooltip": true,
+    "tooltip-format": "Power profile: {profile}"
+  },
+  "tray": {"spacing": 8, "icon-size": 14},
+  "custom/notifications": {"format": "󰂚", "tooltip": "Notification center", "on-click": "swaync-client -t", "on-click-right": "swaync-client -d"}
+}

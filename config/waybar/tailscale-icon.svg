@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 10 28 28">
+  <!-- Dot geometry from https://tailscale.com/favicon.svg -->
+  <g fill="#827d90">
+    <ellipse cx="15" cy="15" rx="3" ry="3" />
+    <ellipse cx="24" cy="15" rx="3" ry="3" />
+    <ellipse cx="33" cy="15" rx="3" ry="3" />
+    <ellipse cx="15" cy="33" rx="3" ry="3" />
+    <ellipse cx="33" cy="33" rx="3" ry="3" />
+  </g>
+  <g fill="#c5c1d5">
+    <ellipse cx="15" cy="24" rx="3" ry="3" />
+    <ellipse cx="24" cy="24" rx="3" ry="3" />
+    <ellipse cx="33" cy="24" rx="3" ry="3" />
+    <ellipse cx="24" cy="33" rx="3" ry="3" />
+  </g>
+</svg>

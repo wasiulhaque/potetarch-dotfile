@@ -1,0 +1,36 @@
+/* SwayNC: dark violet side panel and subtle rounded notifications. */
+:root {
+  --font-size-summary: 13px;
+  --font-size-body: 12px;
+  --notification-icon-size: 48px;
+  --notification-group-icon-size: 24px;
+  --mpris-album-art-icon-size: 64px;
+}
+* { font-family: "JetBrainsMono Nerd Font", sans-serif; color: #e8e4f3; }
+.control-center {
+  background: rgba(28, 27, 38, 0.98);
+  border: 1px solid #4b435f;
+  border-radius: 13px;
+  padding: 7px;
+}
+.control-center .notification-row .notification-background,
+.notification-row .notification-background {
+  background: #292735;
+  border-radius: 11px;
+  margin: 3px 2px;
+}
+.notification {
+  background: #292735;
+  border-radius: 11px;
+  padding: 6px;
+}
+.widget-dnd, .widget-mpris, .widget-notifications {
+  background: #252331;
+  border-radius: 10px;
+  padding: 7px;
+  margin: 4px 2px;
+}
+.widget-dnd > switch:checked { background: #8d80c8; }
+.notification-row .notification-background { padding: 4px 8px; }
+.widget-mpris .widget-mpris-player .mpris-overlay .widget-mpris-title { font-size: 13px; }
+.widget-mpris .widget-mpris-player .mpris-overlay .widget-mpris-subtitle { font-size: 12px; }

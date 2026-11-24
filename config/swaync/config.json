@@ -1,0 +1,31 @@
+{
+  "positionX": "right",
+  "positionY": "top",
+  "layer": "overlay",
+  "control-center-layer": "top",
+  "control-center-width": 330,
+  "notification-window-width": 330,
+  "control-center-margin-top": 45,
+  "control-center-margin-right": 8,
+  "cssPriority": "user",
+  "ignore-gtk-theme": true,
+  "widgets": [
+    "dnd",
+    "mpris",
+    "notifications"
+  ],
+  "widget-config": {
+    "dnd": {
+      "text": "Do Not Disturb"
+    },
+    "mpris": {
+      "autohide": true,
+      "show-album-art": "always"
+    },
+    "notifications": {
+      "vexpand": true
+    }
+  },
+  "fit-to-screen": false,
+  "control-center-height": 460
+}

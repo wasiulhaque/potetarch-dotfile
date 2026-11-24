@@ -1,0 +1,62 @@
+/* A thin, dark purple Waybar modeled on the supplied screenshot. */
+* {
+  font-family: "JetBrainsMono Nerd Font", "JetBrains Mono", sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  min-height: 0;
+}
+window#waybar {
+  background: rgba(27, 26, 37, 0.94);
+  color: #cfccdc;
+  border: 1px solid rgba(165, 151, 221, 0.29);
+  border-radius: 12px;
+}
+#custom-launcher, #workspaces, #window, #cpu, #memory, #temperature,
+#clock, #custom-tailscale, #network, #pulseaudio, #backlight, #battery, #power-profiles-daemon, #tray,
+#custom-notifications, #custom-weather {
+  padding: 0 8px;
+  margin: 3px 0;
+}
+#custom-launcher { color: #b8b2e9; padding-left: 13px; font-size: 15px; }
+#workspaces { padding: 0 3px; }
+#workspaces button {
+  padding: 0 7px;
+  margin: 0 1px;
+  background: transparent;
+  color: #9d9aad;
+  border-radius: 7px;
+  box-shadow: none;
+}
+#workspaces button.active,
+#workspaces button.focused {
+  color: #f3efff;
+  background: #56506d;
+}
+#workspaces button.urgent { color: #f2a8b2; }
+#workspaces button:hover { color: #fff; background: #3d394d; }
+#window { color: #b0acbf; }
+#cpu, #memory, #temperature { padding: 0 3px; }
+#custom-notifications { color: #c4b8ff; font-size: 14px; }
+#battery.critical { color: #f29ca9; }
+#cpu, #memory, #temperature, #network, #pulseaudio,
+#backlight, #battery, #clock { color: #c5c1d5; }
+tooltip {
+  background: #242331;
+  border: 1px solid #5b526f;
+  border-radius: 8px;
+}
+tooltip label { color: #e9e5f7; }
+
+#custom-weather { color: #c5c1d5; padding-right: 13px; }
+#power-profiles-daemon { font-size: 14px; min-width: 16px; padding: 0 6px; }
+#power-profiles-daemon.balanced { color: #e9e5f7; }
+
+#custom-tailscale {
+  min-width: 14px;
+  background-image: url("tailscale-icon.svg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 14px 14px;
+}
+#custom-tailscale.disconnected { opacity: 0.65; }
