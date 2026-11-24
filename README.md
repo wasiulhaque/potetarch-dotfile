@@ -202,6 +202,8 @@ your session environment to choose the save folder.
 - The compositor config also builds on [Hyprland’s default config and Lua API](https://wiki.hypr.land/).
 - Kitty uses the Bogster (Dark) port by lhs, based on [Bogster by vv9k](https://github.com/vv9k/bogster).
 - The Waybar status icon adapts the dot geometry from the [Tailscale favicon](https://tailscale.com/favicon.svg).
+- OpenAI Codex helped package the dotfiles, write the installer and README,
+  and create the configuration-based preview illustrations.
 
 ## License
 
