@@ -9,6 +9,14 @@ and lock screen.
 *The images on this page are illustrations rendered from the configuration
 with sample data. The desktop preview uses an illustrative background.*
 
+## Motivation
+
+I wanted a simple Hyprland setup I could use every day. The design stays
+minimal, with a compact bar, a muted palette, and controls that open when
+needed. Everyday tasks like switching workspaces, connecting to Wi-Fi,
+changing audio devices, and checking notifications are easy to reach from
+the bar or keyboard.
+
 ## Install
 
 On Arch Linux, from your regular user account:
