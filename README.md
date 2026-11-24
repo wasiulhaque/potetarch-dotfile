@@ -52,22 +52,35 @@ Startup launches Waybar, Vicinae, Hypridle, and awww, then restores the wallpape
 through Waypaper. Hyprland also starts SwayNC and the KDE PolicyKit agent as
 systemd user services.
 
+### General shortcuts
+
 | Shortcut | Action |
 | --- | --- |
 | Super + Return / E | Open Kitty / Dolphin |
 | Super + Space or R | Open Vicinae |
 | Super + N / L | Open notifications / lock the screen |
 | Super + Q / M | Close the focused window / log out |
+| Super + Up / Down | Focus the window above / below |
+| Super + V / P / J | Toggle floating / pseudotiling / the split direction |
+| Super + left-drag / right-drag | Move / resize the focused window |
+| Brightness, audio, and playback keys | Adjust brightness or volume in 5% steps, mute sound or mic, and control playback |
+
+### Workspace shortcuts
+
+These shortcuts make multiple workspaces easy to use on a single screen.
+Use the arrow keys to move between tasks, jump straight to a numbered
+workspace, or send a window to the next workspace and follow it. An empty
+workspace is one shortcut away when you need a clean space.
+
+| Shortcut | Action |
+| --- | --- |
 | Super + Left / Right | Switch to an adjacent workspace |
 | Super + Shift + Left / Right | Move the focused window and follow it |
 | Super + Shift + Down | Jump to the next empty workspace on this monitor |
 | Super + 1–0 / Super + Shift + 1–0 | Switch to workspace 1–10 / move the focused window there |
-| Super + Up / Down | Focus the window above / below |
-| Super + V / P / J | Toggle floating / pseudotiling / the split direction |
 | Super + S / Super + Shift + S | Toggle the scratchpad / send the focused window there |
-| Super + left-drag / right-drag | Move / resize the focused window |
 | Super + scroll | Cycle through existing workspaces |
-| Brightness, audio, and playback keys | Adjust brightness or volume in 5% steps, mute sound or mic, and control playback |
+| Three-finger horizontal swipe | Switch workspaces on a touchpad |
 
 ## Waybar
 
@@ -172,6 +185,13 @@ session lock requests and waits for the lock screen to activate before sleep.
 
 Hyprshot saves a PNG and copies it to the clipboard. Set `HYPRSHOT_DIR` in
 your session environment to choose the save folder.
+
+## To-do
+
+- [ ] Add a hotkey to open a monitor layout picker.
+- [ ] Add profiles for mirroring, extending the desktop, using only the
+  built-in display, and using only the external display.
+- [ ] Handle monitor disconnects and restore a usable layout automatically.
 
 ## Credits
 
