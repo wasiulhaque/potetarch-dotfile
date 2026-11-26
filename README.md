@@ -212,8 +212,7 @@ session lock requests and waits for the lock screen to activate before sleep.
 - [**Waypaper**](config/waypaper/config.ini) uses awww and fill scaling with
   animated transitions. Pick an image in Waypaper or run
   `./install.sh --config-only --wallpaper /path/to/image.png`. Keep the image
-  available at the selected path. The local Peanuts wallpaper is excluded
-  because its redistribution source is unverified.
+  available at the selected path.
 
 ## Screenshot shortcuts
 
