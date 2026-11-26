@@ -1,0 +1,11 @@
+<node><interface name="org.bluez.Agent1">
+  <method name="Release"/>
+  <method name="RequestPinCode"><arg type="o" direction="in"/><arg type="s" direction="out"/></method>
+  <method name="DisplayPinCode"><arg type="o"/><arg type="s"/></method>
+  <method name="RequestPasskey"><arg type="o" direction="in"/><arg type="u" direction="out"/></method>
+  <method name="DisplayPasskey"><arg type="o"/><arg type="u"/><arg type="q"/></method>
+  <method name="RequestConfirmation"><arg type="o"/><arg type="u"/></method>
+  <method name="RequestAuthorization"><arg type="o"/></method>
+  <method name="AuthorizeService"><arg type="o"/><arg type="s"/></method>
+  <method name="Cancel"/>
+</interface></node>

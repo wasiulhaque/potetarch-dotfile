@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-11-26
+
+### Changed
+
+- Ported the Wi-Fi, VPN, Bluetooth, and sound panels from Python to Rust
+  while retaining their GTK 4 styling and controls.
+- Start a single controller with Hyprland and route Waybar clicks over the
+  user D-Bus. The launcher starts the controller on demand if needed.
+- Build the controller from source using its Cargo lockfile during install.
+  The installer places it alongside the Waybar launch script.
+
 ## 2026-11-25
 
 ### Added

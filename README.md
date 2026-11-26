@@ -1,7 +1,7 @@
 # potetarch-dotfile
 
 My Arch Linux and Hyprland desktop with a floating lavender Waybar, custom
-GTK menus for Wi-Fi, VPNs, Bluetooth, and sound, plus a matching notification
+Rust and GTK menus for Wi-Fi, VPNs, Bluetooth, and sound, plus a matching notification
 center, volume and brightness overlay, and lock screen.
 
 ![Live Hyprland workspace with the purple wallpaper, Waybar, and Fastfetch in Kitty](screenshots/workspace.png)
@@ -31,8 +31,14 @@ cd potetarch-dotfile
 
 The installer upgrades Arch and installs the desktop packages through Pacman.
 It uses `yay` for Vicinae and Waypaper if either is missing. Install those
-AUR packages yourself or have `yay` available. If you already have the
-dependencies, run `./install.sh --config-only` with Python 3 installed.
+AUR packages yourself or have `yay` available. The installer builds the
+Waybar controller from source with Cargo and uses the checked-in lockfile.
+The first build needs access to crates.io or a populated Cargo cache.
+
+If the dependencies are already installed, run `./install.sh --config-only`.
+This skips Pacman and AUR installs and still builds the controller. It needs
+Python 3, Cargo, a C toolchain, `pkg-config`, GTK 4, GTK4 Layer Shell 1.3+,
+and libnm.
 
 The script copies the files to `${XDG_CONFIG_HOME:-~/.config}` and backs up
 files it replaces under `${XDG_STATE_HOME:-~/.local/state}/potetarch/`. It
@@ -60,8 +66,9 @@ rules for the Vicinae layer, maximize requests, XWayland drag windows, and the
 Hyprland run dialog. The [HyprMod settings file](config/hypr/hyprland-gui.lua)
 hides the default logo and splash.
 
-Startup launches Waybar, the volume and brightness overlay, Vicinae, Hypridle,
-and awww, then restores the wallpaper through Waypaper. Hyprland also starts SwayNC and the KDE PolicyKit agent as
+Startup launches the Waybar controller, Waybar itself, the volume and
+brightness overlay, Vicinae, Hypridle, and awww, then restores the wallpaper
+through Waypaper. Hyprland also starts SwayNC and the KDE PolicyKit agent as
 systemd user services.
 
 ### General shortcuts
@@ -136,10 +143,13 @@ to match your hardware.
 
 ## Wi-Fi, VPN, Bluetooth, and sound menus
 
-The network, Bluetooth, and volume modules open [custom GTK 4 panels](config/waybar/controls.py).
-They use Wayland layer shell and position themselves below the bar on the
-selected display. These panels use the same violet cards, lavender selection
-colors, and compact settings buttons.
+The network, Bluetooth, and volume modules open [custom Rust and GTK 4 panels](waybar-controls/).
+Hyprland starts one controller at login. Waybar clicks open or toggle panels
+over the user D-Bus, avoiding a new process and GTK initialization on each
+click. If the controller is absent, the first click starts it on demand.
+The panels use Wayland layer shell to open below the bar on the selected
+display. The media overlay, Bluetooth status, unread badge, and weather
+helpers still use Python.
 
 | Wi-Fi and VPN | Sound |
 | --- | --- |

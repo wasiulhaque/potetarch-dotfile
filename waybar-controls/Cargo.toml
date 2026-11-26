@@ -1,0 +1,15 @@
+[package]
+name = "waybar-controls"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+gtk = { package = "gtk4", version = "0.10" }
+layer = { package = "gtk4-layer-shell", version = "0.7", features = ["v1_3"] }
+nm = { package = "nm-rs", version = "0.1.3" }
+serde_json = { version = "1", features = ["preserve_order"] }
+futures-util = "0.3"
+
+[profile.release]
+opt-level = 2
+strip = true

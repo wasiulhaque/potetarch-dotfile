@@ -1,0 +1,13 @@
+#!/bin/sh
+
+kind=$1
+output=${WAYBAR_OUTPUT_NAME:-}
+app_id=${WAYBAR_CONTROLS_APP_ID:-local.waybar.Controls}
+object_path=/$(printf '%s' "$app_id" | tr '.-' '/_')
+
+busctl --user --timeout=3s call "$app_id" "$object_path" \
+    org.freedesktop.Application ActivateAction 'sava{sv}' popup 1 '(sss)' \
+    "$kind" "$output" "" 0 >/dev/null 2>&1 && exit 0
+
+# Start the controller on demand if it is absent.
+exec "${0%/*}/waybar-controls" "$kind" "$output"

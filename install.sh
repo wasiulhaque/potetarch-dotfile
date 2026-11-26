@@ -40,10 +40,10 @@ if ! $config_only; then
     repo_packages=(
         awww bluez brightnessctl curl dolphin gtk4 gtk4-layer-shell hypridle hyprland
         hyprlock hyprshot iw kitty libgudev libnm libnotify libpulse networkmanager
-        nm-connection-editor
-        pavucontrol pipewire-pulse playerctl polkit-kde-agent power-profiles-daemon
+        nm-connection-editor gcc pkgconf pavucontrol pipewire-pulse playerctl polkit-kde-agent power-profiles-daemon
         python python-gobject swaync ttf-jetbrains-mono-nerd waybar wireplumber zsh
     )
+    command -v cargo >/dev/null || repo_packages+=(rust)
     aur_packages=()
     pacman -Qq vicinae >/dev/null 2>&1 || pacman -Qq vicinae-bin >/dev/null 2>&1 || aur_packages+=(vicinae-bin)
     pacman -Qq waypaper >/dev/null 2>&1 || aur_packages+=(waypaper)
@@ -59,8 +59,17 @@ fi
 
 staging=$(mktemp -d)
 trap 'rm -rf -- "$staging"' EXIT
-cp -R -- "$source_dir/config/." "$staging/"
-python3 - "$staging/waypaper/config.ini" "$config_dir/waypaper/config.ini" "$wallpaper" <<'PY'
+if ! command -v cargo >/dev/null; then
+    printf 'Cargo is required to build the Waybar controls. Install Rust and rerun.\n' >&2
+    exit 1
+fi
+build_dir=${CARGO_TARGET_DIR:-"$staging/target"}
+cargo build --locked --release --manifest-path "$source_dir/waybar-controls/Cargo.toml" \
+    --target-dir "$build_dir"
+mkdir -- "$staging/config"
+cp -R -- "$source_dir/config/." "$staging/config/"
+install -m 755 -- "$build_dir/release/waybar-controls" "$staging/config/waybar/waybar-controls"
+python3 - "$staging/config/waypaper/config.ini" "$config_dir/waypaper/config.ini" "$wallpaper" <<'PY'
 from configparser import ConfigParser
 from pathlib import Path
 import sys
@@ -85,7 +94,7 @@ with template.open("w", encoding="utf-8") as output:
 PY
 
 # Back up every file that will be replaced before writing any of the configs.
-mapfile -d '' -t files < <(cd -- "$staging" && find . -type f -printf '%P\0' | sort -z)
+mapfile -d '' -t files < <(cd -- "$staging/config" && find . -type f -printf '%P\0' | sort -z)
 backup_dir=
 for file in "${files[@]}"; do
     target=$config_dir/$file
@@ -107,7 +116,7 @@ for file in "${files[@]}"; do
     target_dir=$config_dir/${file%/*}
     mkdir -p -- "$target_dir"
     temporary=$(mktemp "$target_dir/.potetarch-XXXXXXXX")
-    if ! cp -- "$staging/$file" "$temporary" || ! mv -fT -- "$temporary" "$config_dir/$file"; then
+    if ! cp --preserve=mode -- "$staging/config/$file" "$temporary" || ! mv -fT -- "$temporary" "$config_dir/$file"; then
         rm -f -- "$temporary"
         exit 1
     fi

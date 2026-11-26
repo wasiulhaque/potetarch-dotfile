@@ -182,6 +182,7 @@ hl.animation({ leaf = "zoomFactor",    enabled = true, speed = 7,    bezier = "q
 
 hl.on("hyprland.start", function()
     hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP && systemctl --user start swaync.service plasma-polkit-agent.service")
+    hl.exec_cmd([["${XDG_CONFIG_HOME:-$HOME/.config}/waybar/waybar-controls" --daemon]])
     hl.exec_cmd("waybar")
     hl.exec_cmd([[python3 "${XDG_CONFIG_HOME:-$HOME/.config}/hypr/osd.py"]])
     hl.exec_cmd("vicinae server")

@@ -60,14 +60,14 @@
     "return-type": "json",
     "interval": 10
   },
-  "network": {"format-wifi": "<span size='125%'>{icon}</span>", "format-icons": ["󰤟", "󰤢", "󰤥", "󰤨"], "interval": 5, "format-ethernet": "󰈀  Wired", "format-disconnected": "󰖪  Offline", "tooltip-format": "{ifname}", "on-click": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls.py\" wifi \"${WAYBAR_OUTPUT_NAME:-}\" \"$(hyprctl -j cursorpos)\""},
+  "network": {"format-wifi": "<span size='125%'>{icon}</span>", "format-icons": ["󰤟", "󰤢", "󰤥", "󰤨"], "interval": 5, "format-ethernet": "󰈀  Wired", "format-disconnected": "󰖪  Offline", "tooltip-format": "{ifname}", "on-click": "\"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls-open\" wifi"},
   "custom/bluetooth": {
     "exec": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/bluetooth.py\"",
     "return-type": "json",
     "restart-interval": 5,
-    "on-click": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls.py\" bluetooth \"${WAYBAR_OUTPUT_NAME:-}\" \"$(hyprctl -j cursorpos)\""
+    "on-click": "\"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls-open\" bluetooth"
   },
-  "pulseaudio": {"format": "<span size='125%'>{icon}</span>", "format-muted": "<span size='125%'>󰖁</span>", "format-icons": {"default": ["󰕿", "󰖀", "󰕾"]}, "on-click": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls.py\" audio \"${WAYBAR_OUTPUT_NAME:-}\" \"$(hyprctl -j cursorpos)\"", "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle", "scroll-step": 5},
+  "pulseaudio": {"format": "<span size='125%'>{icon}</span>", "format-muted": "<span size='125%'>󰖁</span>", "format-icons": {"default": ["󰕿", "󰖀", "󰕾"]}, "on-click": "\"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls-open\" audio", "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle", "scroll-step": 5},
   "battery": {
     "format": "<span size='125%'>{icon}</span> <span rise='1024'>{capacity}%</span>",
     "format-icons": {
