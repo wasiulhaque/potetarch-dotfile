@@ -4,10 +4,10 @@ My Arch Linux and Hyprland desktop with a floating lavender Waybar, custom
 GTK menus for Wi-Fi, VPNs, Bluetooth, and sound, plus a matching notification
 center, volume and brightness overlay, and lock screen.
 
-![Desktop preview with the floating Waybar, Kitty terminal, and Vicinae launcher](screenshots/desktop-preview.png)
+![Desktop preview with Waybar Bluetooth battery and unread notification indicators, Kitty, and Vicinae](screenshots/desktop-preview.png)
 
 *The images on this page are illustrations rendered from the configuration
-with sample data. They show the original layout and use an illustrative background.*
+with sample data. The desktop preview uses an illustrative background.*
 
 ## Motivation
 
@@ -102,6 +102,8 @@ Waybar palette, clears itself after about 1.4 seconds, and lets pointer input
 pass through. Volume up also unmutes the output. Brightness feedback requires
 a backlight device exposed by the system.
 
+![Two overlay previews showing 42 percent volume and 68 percent brightness](screenshots/osd-preview.png)
+
 ## Waybar
 
 The [bar layout](config/waybar/config.jsonc) uses one 36 px floating panel per
@@ -143,6 +145,10 @@ colors, and compact settings buttons.
 | --- | --- |
 | ![Wi-Fi menu preview with a radio switch, nearby networks, and VPN controls](screenshots/wifi-preview.png) | ![Sound menu preview with output and input device lists and volume sliders](screenshots/audio-preview.png) |
 
+| Expanded Wi-Fi details | Bluetooth |
+| --- | --- |
+| ![Expanded Wi-Fi panel with link rates and addresses](screenshots/wifi-details-preview.png) | ![Bluetooth menu showing a scan, paired devices, and headphones at 80 percent battery](screenshots/bluetooth-preview.png) |
+
 - **Wi-Fi** shows nearby networks with signal strength and security status,
   highlights the connected network, and exposes a radio switch and rescan
   button. Saved networks can reconnect directly. Supported secured networks
@@ -181,7 +187,7 @@ bell to toggle Do Not Disturb. The bell’s badge counts unread notifications.
 Opening the center clears the badge while preserving notification history.
 A SwayNC receive hook and a D-Bus listener keep the count in sync.
 
-![SwayNC preview showing Do Not Disturb and a sample notification](screenshots/notifications-preview.png)
+![SwayNC preview with the unread count cleared while notifications remain in history](screenshots/notifications-preview.png)
 
 ## Hyprlock and Hypridle
 

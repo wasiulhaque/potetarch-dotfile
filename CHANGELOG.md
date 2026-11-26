@@ -27,3 +27,5 @@
   gave the Wi-Fi and Bluetooth panels fixed heights.
 - Made the volume-up key unmute the default output before raising its level.
 - Added BlueZ, `iw`, `curl`, and GUdev to the installer’s package list.
+- Refreshed the README gallery for the new Waybar and SwayNC states, and
+  added previews of Bluetooth, Wi-Fi details, and the media overlay.
