@@ -2,6 +2,11 @@
 
 ## 2026-11-26
 
+### Added
+
+- Prompt for the original Python Waybar panels when Rust is unavailable.
+  Both backends use the same Waybar buttons and desktop configuration.
+
 ### Changed
 
 - Ported the Wi-Fi, VPN, Bluetooth, and sound panels from Python to Rust

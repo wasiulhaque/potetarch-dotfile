@@ -31,6 +31,28 @@ source_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 config_dir=${XDG_CONFIG_HOME:-"$HOME/.config"}
 state_dir=${XDG_STATE_HOME:-"$HOME/.local/state"}
 
+backend=rust
+install_rust=false
+if ! cargo --version >/dev/null 2>&1 || ! rustc --version >/dev/null 2>&1; then
+    printf 'Rust is unavailable. Install the Python Waybar controls instead? [y/N] ' >&2
+    if ! IFS= read -r answer; then
+        printf '\nAnswer y or n to choose a Waybar controls backend.\n' >&2
+        exit 1
+    fi
+    case $answer in
+        [Yy]|[Yy][Ee][Ss]) backend=python ;;
+        ''|[Nn]|[Nn][Oo])
+            if $config_only; then
+                printf 'Install Rust and Cargo, or rerun and choose Python.\n' >&2
+                exit 1
+            fi
+            install_rust=true ;;
+        *)
+            printf 'Answer y or n to choose a Waybar controls backend.\n' >&2
+            exit 1 ;;
+    esac
+fi
+
 if ! $config_only; then
     if [[ ! -f /etc/arch-release ]] || ! command -v pacman >/dev/null; then
         printf 'Package installation targets Arch Linux. Use --config-only on other systems.\n' >&2
@@ -40,10 +62,16 @@ if ! $config_only; then
     repo_packages=(
         awww bluez brightnessctl curl dolphin gtk4 gtk4-layer-shell hypridle hyprland
         hyprlock hyprshot iw kitty libgudev libnm libnotify libpulse networkmanager
-        nm-connection-editor gcc pkgconf pavucontrol pipewire-pulse playerctl polkit-kde-agent power-profiles-daemon
+        nm-connection-editor pavucontrol pipewire-pulse playerctl polkit-kde-agent
+        power-profiles-daemon
         python python-gobject swaync ttf-jetbrains-mono-nerd waybar wireplumber zsh
     )
-    command -v cargo >/dev/null || repo_packages+=(rust)
+    if [[ $backend == rust ]]; then
+        repo_packages+=(gcc pkgconf)
+        if $install_rust; then
+            repo_packages+=(rust)
+        fi
+    fi
     aur_packages=()
     pacman -Qq vicinae >/dev/null 2>&1 || pacman -Qq vicinae-bin >/dev/null 2>&1 || aur_packages+=(vicinae-bin)
     pacman -Qq waypaper >/dev/null 2>&1 || aur_packages+=(waypaper)
@@ -59,16 +87,16 @@ fi
 
 staging=$(mktemp -d)
 trap 'rm -rf -- "$staging"' EXIT
-if ! command -v cargo >/dev/null; then
-    printf 'Cargo is required to build the Waybar controls. Install Rust and rerun.\n' >&2
-    exit 1
-fi
-build_dir=${CARGO_TARGET_DIR:-"$staging/target"}
-cargo build --locked --release --manifest-path "$source_dir/waybar-controls/Cargo.toml" \
-    --target-dir "$build_dir"
 mkdir -- "$staging/config"
 cp -R -- "$source_dir/config/." "$staging/config/"
-install -m 755 -- "$build_dir/release/waybar-controls" "$staging/config/waybar/waybar-controls"
+printf '%s\n' "$backend" > "$staging/config/waybar/controls-backend"
+if [[ $backend == rust ]]; then
+    build_dir=${CARGO_TARGET_DIR:-"$staging/target"}
+    cargo build --locked --release --manifest-path "$source_dir/waybar-controls/Cargo.toml" \
+        --target-dir "$build_dir"
+    install -m 755 -- "$build_dir/release/waybar-controls" "$staging/config/waybar/waybar-controls"
+    rm -- "$staging/config/waybar/controls.py"
+fi
 python3 - "$staging/config/waypaper/config.ini" "$config_dir/waypaper/config.ini" "$wallpaper" <<'PY'
 from configparser import ConfigParser
 from pathlib import Path

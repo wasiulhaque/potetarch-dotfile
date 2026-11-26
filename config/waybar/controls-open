@@ -2,6 +2,16 @@
 
 kind=$1
 output=${WAYBAR_OUTPUT_NAME:-}
+directory=${0%/*}
+if IFS= read -r backend < "$directory/controls-backend" && [ "$backend" = python ]; then
+    [ "$kind" = --daemon ] && exit 0
+    exec python3 "$directory/controls.py" "$kind" "$output" "$(hyprctl -j cursorpos)"
+fi
+
+if [ "$kind" = --daemon ]; then
+    exec "$directory/waybar-controls" --daemon
+fi
+
 app_id=${WAYBAR_CONTROLS_APP_ID:-local.waybar.Controls}
 object_path=/$(printf '%s' "$app_id" | tr '.-' '/_')
 
@@ -10,4 +20,4 @@ busctl --user --timeout=3s call "$app_id" "$object_path" \
     "$kind" "$output" "" 0 >/dev/null 2>&1 && exit 0
 
 # Start the controller on demand if it is absent.
-exec "${0%/*}/waybar-controls" "$kind" "$output"
+exec "$directory/waybar-controls" "$kind" "$output"
