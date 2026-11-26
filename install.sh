@@ -38,8 +38,9 @@ if ! $config_only; then
     fi
 
     repo_packages=(
-        awww brightnessctl dolphin gtk4 gtk4-layer-shell hypridle hyprland hyprlock
-        hyprshot kitty libnm libnotify libpulse networkmanager nm-connection-editor
+        awww bluez brightnessctl curl dolphin gtk4 gtk4-layer-shell hypridle hyprland
+        hyprlock hyprshot iw kitty libgudev libnm libnotify libpulse networkmanager
+        nm-connection-editor
         pavucontrol pipewire-pulse playerctl polkit-kde-agent power-profiles-daemon
         python python-gobject swaync ttf-jetbrains-mono-nerd waybar wireplumber zsh
     )

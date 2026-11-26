@@ -1,13 +1,13 @@
 # potetarch-dotfile
 
 My Arch Linux and Hyprland desktop with a floating lavender Waybar, custom
-GTK menus for Wi-Fi, VPNs, and sound, and a matching notification center
-and lock screen.
+GTK menus for Wi-Fi, VPNs, Bluetooth, and sound, plus a matching notification
+center, volume and brightness overlay, and lock screen.
 
 ![Desktop preview with the floating Waybar, Kitty terminal, and Vicinae launcher](screenshots/desktop-preview.png)
 
 *The images on this page are illustrations rendered from the configuration
-with sample data. The desktop preview uses an illustrative background.*
+with sample data. They show the original layout and use an illustrative background.*
 
 ## Motivation
 
@@ -16,6 +16,8 @@ minimal, with a compact bar, a muted palette, and controls that open when
 needed. Everyday tasks like switching workspaces, connecting to Wi-Fi,
 changing audio devices, and checking notifications are easy to reach from
 the bar or keyboard.
+
+See the [changelog](CHANGELOG.md) for updates.
 
 ## Install
 
@@ -36,7 +38,9 @@ The script copies the files to `${XDG_CONFIG_HOME:-~/.config}` and backs up
 files it replaces under `${XDG_STATE_HOME:-~/.local/state}/potetarch/`. It
 prints the backup path. To restore, copy the backed-up files to your config
 directory and remove any newly installed files you no longer want. Log out
-and back into Hyprland to load the full setup.
+and back into Hyprland to load the full setup. For Bluetooth on a machine
+with a supported adapter, start and enable BlueZ with
+`sudo systemctl enable --now bluetooth.service`.
 
 The source desktop runs Hyprland 0.57.2 and Waybar 0.16.0. If you are switching
 from a legacy `hyprland.conf`, make sure the session loads `hyprland.lua`.
@@ -56,8 +60,8 @@ rules for the Vicinae layer, maximize requests, XWayland drag windows, and the
 Hyprland run dialog. The [HyprMod settings file](config/hypr/hyprland-gui.lua)
 hides the default logo and splash.
 
-Startup launches Waybar, Vicinae, Hypridle, and awww, then restores the wallpaper
-through Waypaper. Hyprland also starts SwayNC and the KDE PolicyKit agent as
+Startup launches Waybar, the volume and brightness overlay, Vicinae, Hypridle,
+and awww, then restores the wallpaper through Waypaper. Hyprland also starts SwayNC and the KDE PolicyKit agent as
 systemd user services.
 
 ### General shortcuts
@@ -90,6 +94,14 @@ workspace is one shortcut away when you need a clean space.
 | Super + scroll | Cycle through existing workspaces |
 | Three-finger horizontal swipe | Switch workspaces on a touchpad |
 
+### Volume and brightness overlay
+
+The [overlay](config/hypr/osd.py) shows the current level near the bottom
+of the focused display when volume, mute, or backlight changes. It uses the
+Waybar palette, clears itself after about 1.4 seconds, and lets pointer input
+pass through. Volume up also unmutes the output. Brightness feedback requires
+a backlight device exposed by the system.
+
 ## Waybar
 
 The [bar layout](config/waybar/config.jsonc) uses one 36 px floating panel per
@@ -103,8 +115,11 @@ and matching active, hover, urgent, and tooltip colors.
   Hyprland creates them on that display and disappear when it removes them.
 - **Center** has the clock and date, an alternate long date on click, and a
   calendar tooltip.
-- **Right** has Tailscale status, network and sound controls, brightness,
-  battery, power profile, tray, notifications, and current weather.
+- **Right** has Tailscale status, Wi-Fi, Bluetooth and sound controls, battery,
+  power profile, tray, an unread notification count, and current weather.
+  Wi-Fi and sound icons reflect signal and volume, and the battery icon
+  reflects charge level and charging state. The tray uses 16 px icons.
+  Brightness changes are shown by the overlay.
 
 The [Tailscale module](config/waybar/tailscale-status.py) changes the dot icon’s
 opacity with connection state and shows a status tooltip. [Weather](config/waybar/weather.py)
@@ -113,15 +128,15 @@ To enable it, create `weather-location.json` next to the installed script with
 your coordinates, for example `{"latitude": 51.51, "longitude": -0.13}`, and
 restart Waybar. The coordinates are sent to Open-Meteo.
 
-Brightness and battery depend on available hardware. The temperature module
+Battery status depends on available hardware. The temperature module
 uses the Intel `coretemp` sensor by default. Set the sensor in Waybar’s config
 to match your hardware.
 
-## Wi-Fi, VPN, and sound menus
+## Wi-Fi, VPN, Bluetooth, and sound menus
 
-The network and volume modules open [custom GTK 4 panels](config/waybar/controls.py).
+The network, Bluetooth, and volume modules open [custom GTK 4 panels](config/waybar/controls.py).
 They use Wayland layer shell and position themselves below the bar on the
-selected display. Both panels use the same violet cards, lavender selection
+selected display. These panels use the same violet cards, lavender selection
 colors, and compact settings buttons.
 
 | Wi-Fi and VPN | Sound |
@@ -132,11 +147,20 @@ colors, and compact settings buttons.
   highlights the connected network, and exposes a radio switch and rescan
   button. Saved networks can reconnect directly. Supported secured networks
   can be joined with an inline password prompt. **Network settings** opens
-  NetworkManager’s connection editor.
+  NetworkManager’s connection editor. Click the connected network to expand
+  live details for Wi-Fi standard, frequency, signal, Rx and Tx rates, local
+  addresses, and gateway. Opening the details also queries [ipify](https://www.ipify.org/)
+  for the internet-facing address of the current route, including a VPN exit
+  node if one is in use.
 - **VPN** lists saved NetworkManager VPN and WireGuard profiles and lets you
   connect or disconnect them. **Add VPN…** opens the connection editor.
   Tailscale gets its own status and switch when available. Changes use the
   configured Tailscale operator or the desktop PolicyKit prompt.
+- **Bluetooth** can turn the adapter on or off, scan for nearby devices,
+  and pair, connect, or disconnect them. The menu separates known and nearby
+  devices, handles PIN and passkey prompts, and shows battery percentages
+  where BlueZ reports them. The bar shows the lowest reported battery level
+  among connected devices.
 - **Sound** lists output and input devices, lets you change the default
   device, and gives the selected output and input their own volume sliders.
   The sliders preserve channel balance. **Audio settings** opens Pavucontrol.
@@ -153,7 +177,9 @@ top right. It contains Do Not Disturb, media controls that hide when idle, and
 notification history. The [CSS](config/swaync/style.css) applies the same font
 and violet palette to the center, notification cards, and media controls.
 Left-click the Waybar bell or press **Super + N** to open it. Right-click the
-bell to toggle Do Not Disturb.
+bell to toggle Do Not Disturb. The bell’s badge counts unread notifications.
+Opening the center clears the badge while preserving notification history.
+A SwayNC receive hook and a D-Bus listener keep the count in sync.
 
 ![SwayNC preview showing Do Not Disturb and a sample notification](screenshots/notifications-preview.png)
 

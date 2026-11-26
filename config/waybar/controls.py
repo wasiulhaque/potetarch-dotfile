@@ -1,6 +1,8 @@
 import ctypes
 import getpass
+from ipaddress import ip_address
 import json
+import re
 import subprocess
 import sys
 
@@ -12,11 +14,15 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Gdk", "4.0")
 gi.require_version("Gtk4LayerShell", "1.0")
 gi.require_version("NM", "1.0")
-from gi.repository import Gdk, Gio, GLib, GObject, Gtk, Gtk4LayerShell as Layer, NM
+from gi.repository import Gdk, Gio, GLib, GObject, Gtk, Gtk4LayerShell as Layer, NM, Pango
+
+from bluetooth import ADAPTER, DEVICE, Bluetooth, PairingAgent, property_value
 
 AP_FLAGS = getattr(NM, "80211ApFlags")
 SECURITY = getattr(NM, "80211ApSecurityFlags")
 PANEL_WIDTH = 345
+FIXED_PANEL_HEIGHTS = {"wifi": 460, "bluetooth": 360}
+PANEL_TITLES = {"wifi": "Wi-Fi", "audio": "Sound", "bluetooth": "Bluetooth"}
 PANEL_GAP = 5
 PULSE_VOLUME_NORMAL = 65536
 VPN_TYPES = {"vpn", "wireguard"}
@@ -39,6 +45,12 @@ window {
 .heading { color: #b8b2e9; font-weight: 700; }
 .secondary { color: #b0acbf; }
 .error { color: #f2a8b2; }
+.wifi-details {
+  background: #242331;
+  border: 1px solid #5b526f;
+  border-radius: 8px;
+  padding: 8px;
+}
 button, entry {
   min-height: 0;
   border: 1px solid transparent;
@@ -62,6 +74,43 @@ scale trough { background: #242331; border: 1px solid #5b526f; }
 scale trough highlight { background: #b8b2e9; border-color: #b8b2e9; box-shadow: none; }
 scale slider { background: #c5c1d5; box-shadow: none; }
 """
+
+
+def wifi_is_secured(ap):
+    return bool(ap.get_flags() & AP_FLAGS.PRIVACY or ap.get_wpa_flags() or ap.get_rsn_flags())
+
+
+def wifi_link_details(iface, frequency):
+    try:
+        output = subprocess.check_output(
+            ["iw", "dev", iface, "link"], text=True, timeout=1, stderr=subprocess.DEVNULL
+        )
+    except (OSError, subprocess.SubprocessError):
+        return "Unavailable", {}, ""
+
+    fields = dict(line.strip().split(":", 1) for line in output.splitlines() if ":" in line)
+    rates = {
+        direction: fields.get(f"{direction} bitrate", "").strip()
+        for direction in ("rx", "tx")
+    }
+    rate_info = " ".join(rates.values())
+    if "EHT-MCS" in rate_info:
+        standard = "Wi-Fi 7 · 802.11be"
+    elif "HE-MCS" in rate_info:
+        standard = "Wi-Fi 6E · 802.11ax" if 5925 <= frequency <= 7125 else "Wi-Fi 6 · 802.11ax"
+    elif "VHT-MCS" in rate_info:
+        standard = "Wi-Fi 5 · 802.11ac"
+    elif re.search(r"(?:^|\s)MCS \d", rate_info):
+        standard = "Wi-Fi 4 · 802.11n"
+    else:
+        standard = "Unavailable"
+
+    speeds = {}
+    for direction, rate in rates.items():
+        match = re.match(r"(\d+(?:\.\d+)?) MBit/s\b", rate)
+        if match:
+            speeds[direction] = f"{match[1]} Mb/s"
+    return standard, speeds, fields.get("signal", "").strip()
 
 
 def label(text, css_class=None):
@@ -126,6 +175,10 @@ class Panel(Gtk.ApplicationWindow):
         self.subscriptions = []
         self.closed = False
         self.pending_volumes = {}
+        self.wifi_detail_timer = 0
+        self.public_ip_request = None
+        self.bluetooth = None
+        self.bt_agent = None
         Layer.init_for_window(self)
         Layer.set_namespace(self, "waybar-controls")
         Layer.set_layer(self, Layer.Layer.OVERLAY)
@@ -170,13 +223,20 @@ class Panel(Gtk.ApplicationWindow):
         card = vertical(8)
         card.add_css_class("card")
         card.set_size_request(PANEL_WIDTH, -1)
-        card.set_halign(Gtk.Align.START)
-        card.set_valign(Gtk.Align.START)
+        panel_top = max(0, round(top)) + PANEL_GAP
         card.set_margin_start(left)
-        card.set_margin_top(max(0, round(top)) + PANEL_GAP)
+        card.set_margin_top(panel_top)
+        if kind in FIXED_PANEL_HEIGHTS:
+            card.set_halign(Gtk.Align.FILL)
+            card.set_valign(Gtk.Align.FILL)
+            card.set_margin_end(max(0, geometry.width - left - PANEL_WIDTH))
+            card.set_margin_bottom(max(0, geometry.height - panel_top - FIXED_PANEL_HEIGHTS[kind]))
+        else:
+            card.set_halign(Gtk.Align.START)
+            card.set_valign(Gtk.Align.START)
         overlay.add_overlay(card)
         header = Gtk.Box(spacing=8)
-        title = label("Wi-Fi" if kind == "wifi" else "Sound", "title")
+        title = label(PANEL_TITLES[kind], "title")
         title.set_hexpand(True)
         header.append(title)
         close = button("×", self.close, "flat")
@@ -192,6 +252,8 @@ class Panel(Gtk.ApplicationWindow):
         if kind == "wifi":
             self.build_wifi()
             card.append(button("Network settings", lambda: self.open_settings("nm-connection-editor"), "settings"))
+        elif kind == "bluetooth":
+            self.build_bluetooth()
         else:
             self.show_audio()
             card.append(button("Audio settings", lambda: self.open_settings("pavucontrol"), "settings"))
@@ -204,6 +266,13 @@ class Panel(Gtk.ApplicationWindow):
 
     def on_close(self, *_args):
         self.closed = True
+        self.stop_wifi_detail_updates()
+        if self.bluetooth:
+            self.stop_bluetooth_scan()
+            if self.bt_agent:
+                self.bluetooth.request(self.bt_agent.device.path, DEVICE, "CancelPairing")
+                self.bt_agent.close()
+            self.bluetooth.close()
         for key, (timer, value, ratios) in tuple(self.pending_volumes.items()):
             GLib.source_remove(timer)
             self.set_audio_volume(key, value, ratios)
@@ -304,6 +373,8 @@ class Panel(Gtk.ApplicationWindow):
     def add_row(self, box, title, detail, action, selected=False):
         row = Gtk.Box(spacing=8)
         name = label(title)
+        if self.kind in FIXED_PANEL_HEIGHTS:
+            name.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
         name.set_hexpand(True)
         row.append(name)
         if detail:
@@ -311,6 +382,245 @@ class Panel(Gtk.ApplicationWindow):
         control = button("", action, *("selected",) if selected else ())
         control.set_child(row)
         box.append(control)
+        return control
+
+    def build_bluetooth(self):
+        try:
+            self.bluetooth = Bluetooth(self.show_bluetooth)
+        except GLib.Error:
+            self.body.append(label("Bluetooth service is unavailable.", "secondary"))
+            return
+
+        self.bt_powered = None
+        self.bt_power_pending = False
+        self.bt_scan_adapter = None
+        self.bt_scan_pending = False
+        self.bt_scan_timer = 0
+        self.bt_pending_device = None
+        toolbar = Gtk.Box(spacing=8)
+        self.bt_status = label("", "secondary")
+        self.bt_status.set_hexpand(True)
+        toolbar.append(self.bt_status)
+        self.bt_scan = button("Scan devices", self.toggle_bluetooth_scan, "flat")
+        toolbar.append(self.bt_scan)
+        self.bt_switch = Gtk.Switch(valign=Gtk.Align.CENTER)
+        self.bt_switch.set_tooltip_text("Enable Bluetooth")
+        self.bt_switch.connect("state-set", self.toggle_bluetooth_power)
+        toolbar.append(self.bt_switch)
+        self.body.append(toolbar)
+
+        self.bt_prompt = vertical()
+        self.bt_prompt.set_visible(False)
+        self.body.append(self.bt_prompt)
+        self.bt_devices = vertical()
+        scroll = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
+        scroll.set_child(self.bt_devices)
+        self.body.append(scroll)
+        self.show_bluetooth()
+
+    def show_bluetooth(self):
+        if self.closed:
+            return
+        adapter = self.bluetooth.adapter()
+        powered = property_value(adapter, "Powered", False)
+        start_scan = powered and self.bt_powered is False
+        self.bt_powered = powered
+        self.bt_switch.set_state(powered)
+        self.bt_switch.set_active(powered)
+        self.bt_switch.set_sensitive(adapter is not None and not self.bt_power_pending and not self.bt_scan_pending)
+        self.bt_scan.set_visible(powered)
+        self.bt_scan.set_sensitive(not self.bt_scan_pending)
+        self.bt_scan.set_label("Stop scan" if self.bt_scan_adapter else "Scan devices")
+
+        clear(self.bt_devices)
+        if not powered:
+            self.bt_status.set_text("Bluetooth off" if adapter is not None else "No Bluetooth adapter")
+            self.stop_bluetooth_scan()
+            return
+
+        scanning = self.bt_scan_adapter or property_value(adapter, "Discovering", False)
+        self.bt_status.set_text("Scanning…" if scanning else "Bluetooth on")
+        devices = self.bluetooth.devices(adapter)
+        known = [device for device in devices if device.known]
+        nearby = [device for device in devices if not device.known]
+        for heading, group in (("Known devices", known), ("Nearby devices", nearby)):
+            if not group:
+                continue
+            self.bt_devices.append(label(heading, "heading"))
+            for device in group:
+                if device.path == self.bt_pending_device:
+                    detail = "Working…"
+                elif device.connected:
+                    detail = "Connected"
+                    if device.battery is not None:
+                        detail += f" · {device.battery}%"
+                else:
+                    detail = "Paired" if device.paired else ("Known" if device.known else "Pair")
+                row = self.add_row(self.bt_devices, device.name, detail,
+                                   lambda device=device: self.select_bluetooth_device(device),
+                                   device.connected)
+                row.set_sensitive(self.bt_pending_device is None)
+        if not devices:
+            empty = "Looking for devices…" if scanning else "No devices found"
+            self.bt_devices.append(label(empty, "secondary"))
+        if start_scan:
+            self.start_bluetooth_scan()
+
+    def toggle_bluetooth_power(self, _switch, enabled):
+        adapter = self.bluetooth.adapter()
+        if adapter is None or enabled == property_value(adapter, "Powered", False):
+            return False
+        self.error("")
+        self.bt_power_pending = True
+        self.bt_switch.set_sensitive(False)
+
+        def finished(error):
+            if self.closed:
+                return
+            self.bt_power_pending = False
+            if error:
+                self.error(f"Could not turn Bluetooth {'on' if enabled else 'off'}: {error}")
+            self.show_bluetooth()
+
+        self.bluetooth.power(adapter, enabled, finished)
+        return True
+
+    def toggle_bluetooth_scan(self):
+        if self.bt_scan_adapter:
+            self.stop_bluetooth_scan()
+            self.show_bluetooth()
+        else:
+            self.start_bluetooth_scan()
+
+    def start_bluetooth_scan(self):
+        adapter = self.bluetooth.adapter()
+        if self.bt_scan_pending or self.bt_scan_adapter or not property_value(adapter, "Powered", False):
+            return
+        self.error("")
+        path = adapter.get_object_path()
+        self.bt_scan_adapter = path
+        self.bt_scan_pending = True
+        self.show_bluetooth()
+
+        def started(error):
+            self.bt_scan_pending = False
+            if self.bt_scan_adapter != path:
+                if not error:
+                    self.bluetooth.request(path, ADAPTER, "StopDiscovery")
+                self.show_bluetooth()
+                return
+            if error:
+                self.bt_scan_adapter = None
+                if not self.closed:
+                    self.error(f"Could not scan: {error}")
+            else:
+                self.bt_scan_timer = GLib.timeout_add_seconds(15, self.finish_bluetooth_scan)
+            self.show_bluetooth()
+
+        self.bluetooth.request(path, ADAPTER, "StartDiscovery", callback=started)
+
+    def finish_bluetooth_scan(self):
+        self.bt_scan_timer = 0
+        self.stop_bluetooth_scan()
+        self.show_bluetooth()
+        return GLib.SOURCE_REMOVE
+
+    def stop_bluetooth_scan(self):
+        if self.bt_scan_timer:
+            GLib.source_remove(self.bt_scan_timer)
+            self.bt_scan_timer = 0
+        path, self.bt_scan_adapter = self.bt_scan_adapter, None
+        if path and not self.bt_scan_pending:
+            self.bluetooth.request(path, ADAPTER, "StopDiscovery")
+
+    def select_bluetooth_device(self, device):
+        self.error("")
+        self.bt_pending_device = device.path
+        self.show_bluetooth()
+        if device.connected or device.paired:
+            method = "Disconnect" if device.connected else "Connect"
+            self.bluetooth.request(device.path, DEVICE, method, callback=self.finish_bluetooth_device,
+                                   timeout=25000)
+            return
+        try:
+            self.bt_agent = PairingAgent(self.bluetooth, device, self.show_bluetooth_prompt)
+        except GLib.Error as exc:
+            self.finish_bluetooth_device(exc.message)
+            return
+
+        def agent_ready(error):
+            if error:
+                self.finish_bluetooth_device(error)
+            elif not self.closed:
+                self.bluetooth.request(device.path, DEVICE, "Pair", callback=paired, timeout=60000)
+
+        def paired(error):
+            if self.closed:
+                return
+            if error:
+                self.finish_bluetooth_device(error)
+            else:
+                self.show_bluetooth_prompt(None, None)
+                self.bluetooth.request(device.path, DEVICE, "Connect",
+                                       callback=self.finish_bluetooth_device, timeout=25000)
+
+        self.bt_agent.start(agent_ready)
+
+    def show_bluetooth_prompt(self, message, kind):
+        if self.closed:
+            return
+        clear(self.bt_prompt)
+        self.bt_prompt.set_visible(bool(message))
+        if not message:
+            return
+        self.bt_prompt.append(label(message))
+        if not kind:
+            return
+        entry = Gtk.Entry() if kind in ("pin", "passkey") else None
+        if entry is not None:
+            entry.set_max_length(6 if kind == "passkey" else 16)
+            if kind == "passkey":
+                entry.set_input_purpose(Gtk.InputPurpose.DIGITS)
+            self.bt_prompt.append(entry)
+
+        def confirm():
+            answer = None
+            if entry is not None:
+                text = entry.get_text().strip()
+                if kind == "passkey" and not re.fullmatch(r"[0-9]{6}", text):
+                    self.error("Enter the six-digit passkey from the device.")
+                    return
+                if not text:
+                    self.error("Enter the PIN for this device.")
+                    return
+                answer = GLib.Variant("(u)", (int(text),)) if kind == "passkey" else GLib.Variant("(s)", (text,))
+            self.error("")
+            self.bt_agent.answer(True, answer)
+            self.show_bluetooth_prompt(None, None)
+
+        actions = Gtk.Box(spacing=8)
+        actions.append(button("Cancel", lambda: self.reject_bluetooth_prompt(), "settings"))
+        actions.append(button("Confirm", confirm, "selected"))
+        self.bt_prompt.append(actions)
+        if entry is not None:
+            entry.connect("activate", lambda _: confirm())
+            entry.grab_focus()
+
+    def reject_bluetooth_prompt(self):
+        self.bt_agent.answer(False)
+        self.show_bluetooth_prompt(None, None)
+
+    def finish_bluetooth_device(self, error):
+        if self.closed:
+            return
+        if self.bt_agent:
+            self.bt_agent.close()
+            self.bt_agent = None
+        self.bt_pending_device = None
+        self.show_bluetooth_prompt(None, None)
+        if error:
+            self.error(error)
+        self.show_bluetooth()
 
     def build_wifi(self):
         try:
@@ -338,8 +648,20 @@ class Panel(Gtk.ApplicationWindow):
         toolbar.append(self.radio)
         self.body.append(toolbar)
 
+        self.connected_row = vertical(0)
+        self.body.append(self.connected_row)
+        self.detail_connection = None
+        wifi_content = vertical()
+        self.build_wifi_details(wifi_content)
         self.network_rows = vertical()
-        self.body.append(scrollable(self.network_rows, 192))
+        wifi_content.append(self.network_rows)
+        self.wifi_scroll = Gtk.ScrolledWindow(
+            hscrollbar_policy=Gtk.PolicyType.NEVER,
+            propagate_natural_height=False,
+            vexpand=True,
+        )
+        self.wifi_scroll.set_child(wifi_content)
+        self.body.append(self.wifi_scroll)
         self.password_box = vertical()
         self.body.append(self.password_box)
         for obj, signal in [
@@ -389,7 +711,14 @@ class Panel(Gtk.ApplicationWindow):
         self.radio.set_state(enabled)
         self.radio.set_active(enabled)
         self.scan.set_sensitive(enabled)
+        clear(self.connected_row)
         clear(self.network_rows)
+        connection = self.wifi.get_active_connection() if enabled else None
+        connection_path = connection.get_path() if connection else None
+        if connection_path != self.detail_connection:
+            self.wifi_details.set_reveal_child(False)
+            self.stop_wifi_detail_updates()
+            self.detail_connection = connection_path
         if not enabled:
             clear(self.password_box)
             self.network_rows.append(label("Wi-Fi is off", "secondary"))
@@ -409,7 +738,7 @@ class Panel(Gtk.ApplicationWindow):
             raw = ssid.get_data()
             if not raw:
                 continue
-            secure = bool(ap.get_flags() & AP_FLAGS.PRIVACY)
+            secure = wifi_is_secured(ap)
             networks.setdefault((raw, secure), ap)
 
         for (ssid, secure), ap in networks.items():
@@ -417,10 +746,115 @@ class Panel(Gtk.ApplicationWindow):
             selected = ap == active
             status = "Connected" if selected else ("Secured" if secure else "Open")
             detail = f"{status} · {ap.get_strength()}%"
-            self.add_row(self.network_rows, name, detail,
-                         lambda ap=ap: self.choose_wifi(ap), selected)
+            if selected:
+                row = self.add_row(self.connected_row, name, f"{detail}  ▾",
+                                   self.toggle_wifi_details, True)
+                row.set_tooltip_text("Show or hide connection details")
+            else:
+                self.add_row(self.network_rows, name, detail, lambda ap=ap: self.choose_wifi(ap))
         if not networks:
             self.network_rows.append(label("No nearby networks found", "secondary"))
+
+    def build_wifi_details(self, content):
+        grid = Gtk.Grid(column_spacing=14, row_spacing=5)
+        grid.add_css_class("wifi-details")
+        self.wifi_detail_values = {}
+        for row, field in enumerate((
+            "Wi-Fi standard", "Frequency", "Signal", "Receive rate", "Transmit rate",
+            "Local IPv4", "Local IPv6", "Gateway", "Public IP",
+        )):
+            title = label(field, "secondary")
+            title.set_valign(Gtk.Align.START)
+            value = label("")
+            value.set_wrap_mode(Pango.WrapMode.WORD_CHAR)
+            value.set_hexpand(True)
+            value.set_selectable(True)
+            grid.attach(title, 0, row, 1, 1)
+            grid.attach(value, 1, row, 1, 1)
+            self.wifi_detail_values[field] = value
+        self.wifi_detail_values["Public IP"].set_tooltip_text(
+            "Internet-facing address for the current route, including any active VPN exit node"
+        )
+        self.wifi_details = Gtk.Revealer(
+            transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN, transition_duration=160
+        )
+        self.wifi_details.set_child(grid)
+        content.append(self.wifi_details)
+
+    def toggle_wifi_details(self):
+        if self.wifi_details.get_reveal_child():
+            self.wifi_details.set_reveal_child(False)
+            self.stop_wifi_detail_updates()
+            return
+        if not self.refresh_wifi_details():
+            return
+        scroll = self.wifi_scroll.get_vadjustment()
+        scroll.set_value(scroll.get_lower())
+        self.wifi_details.set_reveal_child(True)
+        self.wifi_detail_timer = GLib.timeout_add_seconds(3, self.refresh_wifi_details)
+        self.lookup_public_ip()
+
+    def refresh_wifi_details(self):
+        ap = self.wifi.get_active_access_point()
+        if not ap:
+            self.wifi_detail_timer = 0
+            self.stop_wifi_detail_updates()
+            self.wifi_details.set_reveal_child(False)
+            return GLib.SOURCE_REMOVE
+        frequency = ap.get_frequency()
+        standard, speeds, signal = wifi_link_details(self.wifi.get_iface(), frequency)
+        ip4, ip6 = self.wifi.get_ip4_config(), self.wifi.get_ip6_config()
+        addresses = [
+            "\n".join(address.get_address() for address in config.get_addresses()) if config else ""
+            for config in (ip4, ip6)
+        ]
+        gateway = next((config.get_gateway() for config in (ip4, ip6)
+                        if config and config.get_gateway()), None)
+        values = {
+            "Wi-Fi standard": standard,
+            "Frequency": f"{frequency} MHz" if frequency else "",
+            "Signal": f"{ap.get_strength()}% · {signal}" if signal else f"{ap.get_strength()}%",
+            "Receive rate": speeds.get("rx"),
+            "Transmit rate": speeds.get("tx"),
+            "Local IPv4": addresses[0],
+            "Local IPv6": addresses[1],
+            "Gateway": gateway,
+        }
+        for field, value in values.items():
+            self.wifi_detail_values[field].set_text(value or "Unavailable")
+        return GLib.SOURCE_CONTINUE
+
+    def lookup_public_ip(self):
+        value = self.wifi_detail_values["Public IP"]
+        value.set_text("Looking up…")
+        try:
+            self.public_ip_request = Gio.Subprocess.new(
+                ["curl", "--fail", "--silent", "--max-time", "4", "https://api64.ipify.org"],
+                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_SILENCE,
+            )
+        except GLib.Error:
+            value.set_text("Unavailable")
+            return
+        self.public_ip_request.communicate_utf8_async(None, None, self.public_ip_result)
+
+    def public_ip_result(self, process, result):
+        if process != self.public_ip_request:
+            return
+        self.public_ip_request = None
+        try:
+            _, response, _ = process.communicate_utf8_finish(result)
+            address = str(ip_address(response.strip())) if process.get_successful() else None
+        except (GLib.Error, ValueError):
+            address = None
+        self.wifi_detail_values["Public IP"].set_text(address or "Unavailable")
+
+    def stop_wifi_detail_updates(self):
+        if self.wifi_detail_timer:
+            GLib.source_remove(self.wifi_detail_timer)
+            self.wifi_detail_timer = 0
+        if self.public_ip_request:
+            self.public_ip_request.force_exit()
+            self.public_ip_request = None
 
     def build_vpn(self):
         self.body.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
@@ -550,7 +984,7 @@ class Panel(Gtk.ApplicationWindow):
         elif flags & (SECURITY.KEY_MGMT_OWE | SECURITY.KEY_MGMT_OWE_TM):
             self.connect_wifi(ap, "owe")
             return
-        elif ap.get_flags() & AP_FLAGS.PRIVACY:
+        elif wifi_is_secured(ap):
             self.error("Use Network settings to configure this network’s security.")
             return
         else:
@@ -629,7 +1063,7 @@ class Controls(Gtk.Application):
 
     def do_command_line(self, command):
         args = command.get_arguments()
-        if len(args) not in (2, 3, 4) or args[1] not in ("wifi", "audio"):
+        if len(args) not in (2, 3, 4) or args[1] not in PANEL_TITLES:
             return 2
         kind = args[1]
         output = args[2] if len(args) >= 3 else ""

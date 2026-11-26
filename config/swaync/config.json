@@ -27,5 +27,11 @@
     }
   },
   "fit-to-screen": false,
-  "control-center-height": 460
+  "control-center-height": 460,
+  "scripts": {
+    "waybar-unread": {
+      "exec": "sh -c 'exec python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/notifications.py\" --received'",
+      "run-on": "receive"
+    }
+  }
 }

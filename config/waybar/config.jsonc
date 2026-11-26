@@ -10,7 +10,7 @@
 
   "modules-left": ["custom/launcher", "hyprland/workspaces", "hyprland/window", "cpu", "memory", "temperature"],
   "modules-center": ["clock"],
-  "modules-right": ["custom/tailscale", "network", "pulseaudio", "backlight", "battery", "power-profiles-daemon", "tray", "custom/notifications", "custom/weather"],
+  "modules-right": ["custom/tailscale", "network", "custom/bluetooth", "pulseaudio", "battery", "power-profiles-daemon", "tray", "custom/notifications", "custom/weather"],
 
   "custom/launcher": {
     "format": "",
@@ -60,10 +60,22 @@
     "return-type": "json",
     "interval": 10
   },
-  "network": {"format-wifi": "󰖩", "format-ethernet": "󰈀  Wired", "format-disconnected": "󰖪  Offline", "tooltip-format": "{ifname}", "on-click": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls.py\" wifi \"${WAYBAR_OUTPUT_NAME:-}\" \"$(hyprctl -j cursorpos)\""},
-  "pulseaudio": {"format": "  {volume}%", "format-muted": "󰖁  Mute", "on-click": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls.py\" audio \"${WAYBAR_OUTPUT_NAME:-}\" \"$(hyprctl -j cursorpos)\"", "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle", "scroll-step": 5},
-  "backlight": {"format": "󰃠  {percent}%"},
-  "battery": {"format": "  {capacity}%", "format-charging": "  {capacity}%", "states": {"warning": 25, "critical": 10}},
+  "network": {"format-wifi": "<span size='125%'>{icon}</span>", "format-icons": ["󰤟", "󰤢", "󰤥", "󰤨"], "interval": 5, "format-ethernet": "󰈀  Wired", "format-disconnected": "󰖪  Offline", "tooltip-format": "{ifname}", "on-click": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls.py\" wifi \"${WAYBAR_OUTPUT_NAME:-}\" \"$(hyprctl -j cursorpos)\""},
+  "custom/bluetooth": {
+    "exec": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/bluetooth.py\"",
+    "return-type": "json",
+    "restart-interval": 5,
+    "on-click": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls.py\" bluetooth \"${WAYBAR_OUTPUT_NAME:-}\" \"$(hyprctl -j cursorpos)\""
+  },
+  "pulseaudio": {"format": "<span size='125%'>{icon}</span>", "format-muted": "<span size='125%'>󰖁</span>", "format-icons": {"default": ["󰕿", "󰖀", "󰕾"]}, "on-click": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/controls.py\" audio \"${WAYBAR_OUTPUT_NAME:-}\" \"$(hyprctl -j cursorpos)\"", "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle", "scroll-step": 5},
+  "battery": {
+    "format": "<span size='125%'>{icon}</span> <span rise='1024'>{capacity}%</span>",
+    "format-icons": {
+      "default": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"],
+      "charging": ["󰢟", "󰢜", "󰂆", "󰂇", "󰂈", "󰢝", "󰂉", "󰢞", "󰂊", "󰂋", "󰂅"]
+    },
+    "states": {"warning": 25, "critical": 10}
+  },
   "power-profiles-daemon": {
     "format": "{icon}",
     "format-icons": {
@@ -74,6 +86,14 @@
     "tooltip": true,
     "tooltip-format": "Power profile: {profile}"
   },
-  "tray": {"spacing": 8, "icon-size": 14},
-  "custom/notifications": {"format": "󰂚", "tooltip": "Notification center", "on-click": "swaync-client -t", "on-click-right": "swaync-client -d"}
+  "tray": {"spacing": 8, "icon-size": 16},
+  "custom/notifications": {
+    "format": "󰂚 <span size='small'>{text}</span>",
+    "tooltip": true,
+    "exec": "python3 \"${XDG_CONFIG_HOME:-$HOME/.config}/waybar/notifications.py\"",
+    "return-type": "json",
+    "restart-interval": 5,
+    "on-click": "swaync-client -t",
+    "on-click-right": "swaync-client -d"
+  }
 }

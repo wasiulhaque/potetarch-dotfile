@@ -13,7 +13,7 @@ window#waybar {
   border-radius: 12px;
 }
 #custom-launcher, #workspaces, #window, #cpu, #memory, #temperature,
-#clock, #custom-tailscale, #network, #pulseaudio, #backlight, #battery, #power-profiles-daemon, #tray,
+#clock, #custom-tailscale, #network, #custom-bluetooth, #pulseaudio, #battery, #power-profiles-daemon, #tray,
 #custom-notifications, #custom-weather {
   padding: 0 8px;
   margin: 3px 0;
@@ -39,8 +39,8 @@ window#waybar {
 #cpu, #memory, #temperature { padding: 0 3px; }
 #custom-notifications { color: #c4b8ff; font-size: 14px; }
 #battery.critical { color: #f29ca9; }
-#cpu, #memory, #temperature, #network, #pulseaudio,
-#backlight, #battery, #clock { color: #c5c1d5; }
+#cpu, #memory, #temperature, #network, #custom-bluetooth, #pulseaudio,
+#battery, #clock { color: #c5c1d5; }
 tooltip {
   background: #242331;
   border: 1px solid #5b526f;
@@ -49,14 +49,20 @@ tooltip {
 tooltip label { color: #e9e5f7; }
 
 #custom-weather { color: #c5c1d5; padding-right: 13px; }
-#power-profiles-daemon { font-size: 14px; min-width: 16px; padding: 0 6px; }
+#custom-tailscale, #network, #custom-bluetooth, #pulseaudio, #battery,
+#power-profiles-daemon, #tray, #custom-notifications { padding: 0 5px; }
+#custom-tailscale, #network, #custom-bluetooth, #pulseaudio,
+#power-profiles-daemon { min-width: 16px; }
+#power-profiles-daemon { font-size: 16px; }
+#tray widget > image { min-width: 16px; min-height: 16px; }
 #power-profiles-daemon.balanced { color: #e9e5f7; }
 
 #custom-tailscale {
-  min-width: 14px;
   background-image: url("tailscale-icon.svg");
   background-position: center;
   background-repeat: no-repeat;
   background-size: 14px 14px;
 }
 #custom-tailscale.disconnected { opacity: 0.65; }
+
+#custom-bluetooth.off { color: #8d899b; }
