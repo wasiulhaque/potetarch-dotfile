@@ -4,10 +4,10 @@ My Arch Linux and Hyprland desktop with a floating lavender Waybar, custom
 GTK menus for Wi-Fi, VPNs, Bluetooth, and sound, plus a matching notification
 center, volume and brightness overlay, and lock screen.
 
-![Desktop preview with Waybar Bluetooth battery and unread notification indicators, Kitty, and Vicinae](screenshots/desktop-preview.png)
+![Live Hyprland workspace with the purple wallpaper, Waybar, and Fastfetch in Kitty](screenshots/workspace.png)
 
-*The images on this page are illustrations rendered from the configuration
-with sample data. The desktop preview uses an illustrative background.*
+*Arch Linux and Hyprland with Fastfetch in Kitty. The cover is a live desktop
+capture. The component previews below use sample data.*
 
 ## Motivation
 
@@ -202,6 +202,8 @@ Press **Super + L** to lock. [Hypridle](config/hypr/hypridle.conf) handles
 session lock requests and waits for the lock screen to activate before sleep.
 
 ## Vicinae, Kitty, and wallpaper
+
+![Illustrated preview of the Vicinae launcher over Kitty](screenshots/desktop-preview.png)
 
 - [**Vicinae**](config/vicinae/settings.json) uses the One Dark theme, JetBrains
   Mono Nerd Font, a compact launcher, and a floating status bar at 90% window
